@@ -10,6 +10,10 @@
 % radar_equation.m
 % parse_csv_file.m
 % make_plot.m
+% KMC4_antena_char_hori.csv
+% KMC4_antena_char_vert.csv
+% input.json
+% /jsonlab
 %
 % @using HGtransform
 % @literature Matlab
@@ -38,31 +42,38 @@
 %   https://www.mathworks.com/help/phased/ug/radar-waveform-analyzer-app.html
 
 clear all;
+addpath(genpath('./jsonlab'))
+savepath
 
 %%
 % Setting static variables for simulation
+data=loadjson('input.json');
 
-F_TRANS = 24.125e+8;           % Transmiting frequency GHz
-SPEED_OF_OBJECT = 30;       % Speed of object
-ANTENNA_GAIN = 13;          % dB 
+% Transmiting frequency GHz
+F_TRANS = str2num(data.global.Transceiving_frequency);
+% Speed of object
+SPEED_OF_OBJECT = str2num(data.global.Speed_of_object);
+% dB 
+ANTENNA_GAIN = str2num(data.global.Antenna_gain)
 
-OBJECT_X_POS = 22;          %   __
-OBJECT_Y_POS = 56;          % _/  \__
-OBJECT_Z_POS = 0;           %
+OBJECT_POS = [str2num(data.object.x) str2num(data.object.y) str2num(data.object.z)];
 
-RADAR_X_POS = 15;
-RADAR_Y_POS = 20;
-RADAR_Z_POS = 15;
-RADAR_AIM_X_POS = 15;
-RADAR_AIM_Y_POS = 40;
-RADAR_AIM_Z_POS = 0;
+RADAR_POS = [str2num(data.radar.position.x) str2num(data.radar.position.y) str2num(data.radar.position.z)];
 
+RADAR_AIM = [str2num(data.radar.heading.x) str2num(data.radar.heading.y) str2num(data.radar.heading.z)];
 
-NUM_OF_STEPS = 1e4;        % Simulation run repetitions (frequency)
-                            % for best results us 10kHz
+% Simulation run repetitions (frequency)
+% for best results us 10kHz
+NUM_OF_STEPS = str2num(data.global.Number_of_steps);
 
-SHOW_CUBE_SIMULATION = 0;   % Put 1 fow show whole cube Simulation
-                            % Time demanding action!! Graphical interface
+% Put 1 fow show whole cube Simulation
+% Time demanding action!! Graphical interface
+Simulation_setup = str2num(data.global.Show_simulation_movement);
+if strcmp(Simulation_setup,'on')
+    SHOW_CUBE_SIMULATION = 1;
+else
+    SHOW_CUBE_SIMULATION = 0;
+end
 
 %%
 % Setting up size of enviroment(cube) for simulation
@@ -86,14 +97,14 @@ antenna_vert_data = parse_csv_file('KMC4_antena_char_vert.csv');
 % Generating moving object - car
 directions = [0 0 2; 0 -2 0; 0 2 2; 0 4 0; 0 -4 0; 4 0 2; 4 -2 0; 4 2 2; 4 4 0; 4 -4 0; 2 -4 0; 2 4 0];
 for num=1:12
-    hpoint(num) = line('XData', OBJECT_X_POS+directions(num,1),'YData', OBJECT_Y_POS+directions(num,2),'ZData', OBJECT_Z_POS+directions(num,3),'Color','black','Marker',...
+    hpoint(num) = line('XData', OBJECT_POS(1)+directions(num,1),'YData', OBJECT_POS(2)+directions(num,2),'ZData', OBJECT_POS(3)+directions(num,3),'Color','black','Marker',...
        'o','MarkerSize',2,'MarkerFaceColor','black');
 end
 
 % Static point - radar
-spoint = line('XData', RADAR_X_POS,'YData', RADAR_Y_POS,'ZData', RADAR_Z_POS,'Color','red','Marker',...
+spoint = line('XData', RADAR_POS(1),'YData', RADAR_POS(2),'ZData', RADAR_POS(3),'Color','red','Marker',...
     'x','MarkerSize',10,'MarkerFaceColor','red');
-spoint_aim = line('XData', RADAR_AIM_X_POS,'YData', RADAR_AIM_Y_POS,'ZData', RADAR_AIM_Z_POS,'Color','red','Marker',...
+spoint_aim = line('XData', RADAR_AIM(1),'YData', RADAR_AIM(2),'ZData', RADAR_AIM(3),'Color','red','Marker',...
     'x','MarkerSize',10,'MarkerFaceColor','red');
 
 % Library class for object movement
@@ -169,12 +180,12 @@ for i=1:length(t);
 
         % Angle correction
         % In .csv input file we have angles from 0-180 degress, we have to make a correction
-        ang1 = 9e+4 + angle_hori(i) * 1e+4;
-        ang2 = 9e+4 + angle_vert(i) * 1e+4;
+        ang_temp = 9e+4 + angle_hori(i) * 1e+4;
 
         % Get loss from antenna system diagram
-        antenna_loss_hori(i) = antenna_hori_data(logical(ang1));
-        antenna_loss_vert(i) = antenna_vert_data(logical(ang2));
+        antenna_loss_hori(i) = antenna_hori_data(logical(ang_temp));
+        ang_temp = 9e+4 + angle_vert(i) * 1e+4;        
+        antenna_loss_vert(i) = antenna_vert_data(logical(ang_temp));
 
         antenna_loss = antenna_loss_vert(i) * antenna_loss_hori(i);
 
@@ -204,10 +215,11 @@ t = 0:dt:1;
 for pnt=1:12
     phi_t1 = 0;    
 	for n=1:length(t)
-	        phi_t2 = 2*pi*F_receiv(pnt,n)*dt;
-	        var = sqrt(P_receiv(pnt,n));
-	        x(pnt,n) = var*exp(1j*(phi_t1+phi_t2)); % complex signal
-	        phi_t1 = phi_t2;
+        phi_dt = 2*pi*F_receiv(pnt,n)*dt;
+        var = sqrt(P_receiv(pnt,n));
+        phi_t2 = phi_t1+phi_dt;
+        x(pnt,n) = var*exp(1j*(phi_t2)); % complex signal
+        phi_t1 = phi_t2;			
 	end
 
     disp('Calculations completition status: [in %]');
