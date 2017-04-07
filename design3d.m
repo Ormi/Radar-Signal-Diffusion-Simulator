@@ -20,26 +20,31 @@
 %
 % Version 1.0
 
-% JSONLab
-% oprav hlupe nazvy premmennych a funkcii, rovnako ako aj funkcii
-% posun abs
-% posun phi init
-% chyba v generovani
-%
-%
-
-
 % @TODO 
 % RCS pre kazdy bod jedinecne
 % Spectogram
 % Definovat poziciu bodov ako trojicu a nasobit medzi
 
 % @QUESTIONS
-% -Aky RCS urcit pre jednotlive body?
+% VSTUP P_receiv, jedna hodnota mi tam nie je jasna
+% Rovnako jednotky mi nie su jasne
+% Vysvetlenie radarovej rovnice, jej hodnoty a hlavne jednotky, ci je vsetko spravne, potom to potrebujem pouzit v dokumentacii.
+% Ako dalej postupovat v BP, povedzme, ze to uz mam skoro napisane, chcete este neico kontrolvoat alebo to nechate na mna?
+% Vysvetlit poslednu fazu, kde sa nas P_receiv stretne s gen. signalom. Neviem to spravne zapisat do dokumentacie
+% Testovanie a vysledky = porovname to s nejakymi realnimi? Dajte mi co ste v piatok s chlapcami namerali a ja to nasimulujem
 
 % @IDEAS
 % GUI like RadarWaveformAnalyzer?
 %   https://www.mathworks.com/help/phased/ug/radar-waveform-analyzer-app.html
+
+% TODO rozdelit subory na .json na viac a potom hlavny "nacitava" ostatne
+%
+% Generator komplexniho vystupu radaru
+%
+% Vytvorit osobitny tool, ktory dokaze ozbrazit ako objekt vyzera, ako scena vyzera.
+% Tesotvacie tooly aby som prve videl ako naozaj to ide prv bez generovania a potom, pre testovania json
+%
+%Vyska radaru tak 7m
 
 clear all;
 addpath(genpath('./jsonlab'))
@@ -54,32 +59,40 @@ F_TRANS = str2num(data.global.Transceiving_frequency);
 % Speed of object
 SPEED_OF_OBJECT = str2num(data.global.Speed_of_object);
 % dB 
-ANTENNA_GAIN = str2num(data.global.Antenna_gain)
+ANTENNA_GAIN = str2num(data.global.Antenna_gain);
 
-OBJECT_POS = [str2num(data.object.x) str2num(data.object.y) str2num(data.object.z)];
+OBJECT_POS = [str2num(data.object.position.x) str2num(data.object.position.y) str2num(data.object.position.z)];
 
 RADAR_POS = [str2num(data.radar.position.x) str2num(data.radar.position.y) str2num(data.radar.position.z)];
 
 RADAR_AIM = [str2num(data.radar.heading.x) str2num(data.radar.heading.y) str2num(data.radar.heading.z)];
 
+ENVIROMENT_SIZE = [str2num(data.enviroment.x) str2num(data.enviroment.y) str2num(data.enviroment.z)];
+
+NUM_OF_POINTS = 3;
+
 % Simulation run repetitions (frequency)
 % for best results us 10kHz
 NUM_OF_STEPS = str2num(data.global.Number_of_steps);
 
+RCS = str2num(data.object.RCS);
+
 % Put 1 fow show whole cube Simulation
 % Time demanding action!! Graphical interface
-Simulation_setup = str2num(data.global.Show_simulation_movement);
+Simulation_setup = (data.global.Show_simulation_movement);
 if strcmp(Simulation_setup,'on')
     SHOW_CUBE_SIMULATION = 1;
 else
     SHOW_CUBE_SIMULATION = 0;
 end
 
+c = physconst('Lightspeed');
+
 %%
 % Setting up size of enviroment(cube) for simulation
 ah = axes;
-set(ah,'XLim',[0 30],'YLim',[0 70],...
-    'ZLim',[0 30]);
+set(ah,'XLim',[0 ENVIROMENT_SIZE(1)],'YLim',[0 ENVIROMENT_SIZE(2)],...
+    'ZLim',[0 ENVIROMENT_SIZE(3)]);
 hold on;
 view(3);
 
@@ -95,8 +108,10 @@ antenna_vert_data = parse_csv_file('KMC4_antena_char_vert.csv');
 % o   o o
 
 % Generating moving object - car
-directions = [0 0 2; 0 -2 0; 0 2 2; 0 4 0; 0 -4 0; 4 0 2; 4 -2 0; 4 2 2; 4 4 0; 4 -4 0; 2 -4 0; 2 4 0];
-for num=1:12
+%directions = [0 0 2; 0 -2 0; 0 2 2; 0 4 0; 0 -4 0; 4 0 2; 4 -2 0; 4 2 2; 4 4 0; 4 -4 0; 2 -4 0; 2 4 0];
+directions = [0 0 2; 0 -2 0; 0 2 2];
+
+for num=1:NUM_OF_POINTS
     hpoint(num) = line('XData', OBJECT_POS(1)+directions(num,1),'YData', OBJECT_POS(2)+directions(num,2),'ZData', OBJECT_POS(3)+directions(num,3),'Color','black','Marker',...
        'o','MarkerSize',2,'MarkerFaceColor','black');
 end
@@ -117,9 +132,9 @@ Fs = NUM_OF_STEPS;
 dt = 1/Fs;
 t = 0:dt:1;
 for i=1:length(t);
-    % Object movement in enviroment settinhs
+    % Object movement in enviroment settings
     tx = 0;
-    ty = -(25/NUM_OF_STEPS)*i*2;
+    ty = -((ENVIROMENT_SIZE(2)/2)/NUM_OF_STEPS)*i*2;
     tz = 0;
     
     % Transform enviroment(move object) in every step
@@ -138,14 +153,14 @@ for i=1:length(t);
 
     % Get valus from dynamic points
     % For better quicker calculations in separately cycle
-    for pnt=1:12
-        h1(pnt) = get(hpoint(pnt),'XData'); h1y = get(hpoint(pnt),'YData'); h1z = get(hpoint(pnt),'ZData');     
+    for point_init=1:NUM_OF_POINTS
+        h1(point_init) = get(hpoint(point_init),'XData'); h1y = get(hpoint(point_init),'YData'); h1z = get(hpoint(point_init),'ZData');     
     end
 
     %%
     % In every step of simulation we have to calculate data for every moving point
-    for pnt=1:12          
-        h1x = h1(pnt);   
+    for point=1:NUM_OF_POINTS         
+        h1x = h1(point);   
         
         % Calculation of distance
         distance(i) = abs(norm([s1x, s1y, s1z] - [h1x+tx, h1y+ty, h1z+tz]));
@@ -180,22 +195,22 @@ for i=1:length(t);
 
         % Angle correction
         % In .csv input file we have angles from 0-180 degress, we have to make a correction
-        ang_temp = 9e+4 + angle_hori(i) * 1e+4;
+        ang_temp1(i) = 9e+4 + (angle_hori(i) * 1e+4);
 
         % Get loss from antenna system diagram
-        antenna_loss_hori(i) = antenna_hori_data(logical(ang_temp));
-        ang_temp = 9e+4 + angle_vert(i) * 1e+4;        
-        antenna_loss_vert(i) = antenna_vert_data(logical(ang_temp));
+        antenna_loss_hori(i) = antenna_hori_data(int16(ang_temp1(i)));
+        ang_temp2(i) = 9e+4 + (angle_vert(i) * 1e+4);        
+        antenna_loss_vert(i) = antenna_vert_data(int16(ang_temp2(i)));
 
         antenna_loss = antenna_loss_vert(i) * antenna_loss_hori(i);
 
         % #Extern function for calculating receiving frequency
         % @input is speed of object and transmiting frequency
-        F_receiv(pnt,i) = return_signal_freq(SPEED_OF_OBJECT,F_TRANS, angle_area);
+        F_receiv(point,i) = return_signal_freq(SPEED_OF_OBJECT,F_TRANS, angle_area, c);
 
         % #Extern function for calculating receiving power
         % @input is speed of object and transmiting frequency
-        P_receiv(pnt,i) = radar_equation(F_TRANS, 1, F_TRANS, antenna_loss, distance(i));
+        P_receiv(point,i) = radar_equation(F_TRANS, 1, RCS, antenna_loss, distance(i));
     end
 
     if mod(i, NUM_OF_STEPS/100) == 0
@@ -212,24 +227,27 @@ Fs = NUM_OF_STEPS;
 dt = 1/Fs;
 t = 0:dt:1;
 
-for pnt=1:12
+for point=1:NUM_OF_POINTS
     phi_t1 = 0;    
 	for n=1:length(t)
-        phi_dt = 2*pi*F_receiv(pnt,n)*dt;
-        var = sqrt(P_receiv(pnt,n));
+        phi_dt = 2*pi*F_receiv(point,n)*dt;
+        var = sqrt(P_receiv(point,n));
         phi_t2 = phi_t1+phi_dt;
-        x(pnt,n) = var*exp(1j*(phi_t2)); % complex signal
+        x(point,n) = var*exp(1j*(phi_t2)); % complex signal
         phi_t1 = phi_t2;			
 	end
 
     disp('Calculations completition status: [in %]');
-    disp((100/12)*pnt);    
+    disp((100/12)*point);    
 end
 
 %%
 % Link frequency characteristic of all points together
 for n=1:NUM_OF_STEPS
-    x(1, n) = x(1, n) + x(2, n) + x(3, n) + x(4, n) + x(5, n) + x(6, n) + x(7, n) + x(8, n) + x(9, n) + x(10, n) + x(11, n) + x(12, n);
+    for m=1:NUM_OF_POINTS
+       x(1, n) = x(m, n); 
+    end
+    %x(1, n) = x(1, n) + x(2, n) + x(3, n) + x(4, n) + x(5, n) + x(6, n) + x(7, n) + x(8, n) + x(9, n) + x(10, n) + x(11, n) + x(12, n);
 end
 
 %%
