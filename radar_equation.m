@@ -17,11 +17,18 @@
 %          (4pi)^2 * d^4 * loss
 %
 	
-function power_recei = radar_equation(trans_gain,recei_gain,RCS,loss_factor,distance)
+function power_recei = radar_equation(trans_gain,receiv_gain,RCS,loss_factor,distance)
 	
 	% Static value, anntenna
-	power_trans = 5.6485e+03;
+	%power_trans = 5.6485e+03;
+    
+    %13dB -> 18dB
+    power_trans = 6.30957e-2;
+    %18dB -> 13dB
+    trans_gain = 1.9952e-2;
+    %16dB
+    receiv_gain = 3.9810e-2;
 
-	power_recei = ((power_trans * trans_gain * recei_gain * RCS) / ...
+	power_recei = ((power_trans * trans_gain * receiv_gain * RCS) / ...
 				  (power(4*(pi), 2) * power(distance, 4) * loss_factor));
 end
