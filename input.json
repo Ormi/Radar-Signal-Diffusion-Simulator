@@ -3,26 +3,34 @@
 		"Transceiving_frequency": "24.125e9",
 		"Speed_of_object": "30",
 		"Antenna_gain": "13",
-		"Number_of_steps": "1e4",
+		"Number_of_steps": "1e3",
 		"Show_simulation_movement": "off"
+	},
+	"enviroment": {
+		"x": "30",
+		"y": "70",
+		"z": "30"
 	},
 	"radar": {
 		"position": {
 			"x": "15",
-			"y": "20",
+			"y": "10",
 			"z": "15"
 		 },
 		 "heading": {
 		 	"x": "15",
-		 	"y": "40",
+		 	"y": "30",
 		 	"z": "0"
 		 }
 
 	},
 	"object": {
-		"x": "22",
-		"y": "56",
-		"z": "0"
+		"position": {
+			"x": "15",
+			"y": "56",
+			"z": "0"
+		},
+		"RCS": "2"
 	}
 
 }
