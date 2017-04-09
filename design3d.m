@@ -71,6 +71,8 @@ ENVIROMENT_SIZE = [str2num(data.enviroment.x) str2num(data.enviroment.y) str2num
 
 NUM_OF_POINTS = 3;
 
+angle_dead = 0;
+
 % Simulation run repetitions (frequency)
 % for best results us 10kHz
 NUM_OF_STEPS = str2num(data.global.Number_of_steps);
@@ -109,7 +111,7 @@ antenna_vert_data = parse_csv_file('KMC4_antena_char_vert.csv');
 
 % Generating moving object - car
 %directions = [0 0 2; 0 -2 0; 0 2 2; 0 4 0; 0 -4 0; 4 0 2; 4 -2 0; 4 2 2; 4 4 0; 4 -4 0; 2 -4 0; 2 4 0];
-directions = [0 0 2; 0 -2 0; 0 2 2];
+directions = [0 0 1; 0 -1 0; 0 1 1];
 
 for num=1:NUM_OF_POINTS
     hpoint(num) = line('XData', OBJECT_POS(1)+directions(num,1),'YData', OBJECT_POS(2)+directions(num,2),'ZData', OBJECT_POS(3)+directions(num,3),'Color','black','Marker',...
@@ -134,7 +136,7 @@ t = 0:dt:1;
 for i=1:length(t);
     % Object movement in enviroment settings
     tx = 0;
-    ty = -((ENVIROMENT_SIZE(2)/2)/NUM_OF_STEPS)*i*2;
+    ty = -((ENVIROMENT_SIZE(2)/2)/NUM_OF_STEPS)*i*1.1;
     tz = 0;
     
     % Transform enviroment(move object) in every step
@@ -154,63 +156,82 @@ for i=1:length(t);
     % Get valus from dynamic points
     % For better quicker calculations in separately cycle
     for point_init=1:NUM_OF_POINTS
-        h1(point_init) = get(hpoint(point_init),'XData'); h1y = get(hpoint(point_init),'YData'); h1z = get(hpoint(point_init),'ZData');     
+        %h1_x(point_init) = get(hpoint(point_init),'XData'); 
+        h1_x(point_init) = get(hpoint(point_init),'XData');         
+        h1_y(point_init) = get(hpoint(point_init),'YData'); 
+        h1_z(point_init) = get(hpoint(point_init),'ZData');     
     end
 
     %%
     % In every step of simulation we have to calculate data for every moving point
     for point=1:NUM_OF_POINTS         
-        h1x = h1(point);   
+        h1x = h1_x(point); 
+        h1y = h1_y(point); 
+        h1z = h1_z(point);  
         
-        % Calculation of distance
-        distance(i) = abs(norm([s1x, s1y, s1z] - [h1x+tx, h1y+ty, h1z+tz]));
-        
-        % Point_start to Point_actual_position % start_point - actual_point
-        heading_p2p = [h1x - (h1x + tx), h1y - (h1y + ty), h1z - (h1z + tz)];
-        
-        % Radar to Point_actual_position % start_point - actual_point
-        heading_r2p = [s1x - (h1x + tx), s1y - (h1y + ty), s1z - (h1z + tz)];
-        heading_p2r = [(h1x + tx) - s1x, (h1y + ty) - s1y, (h1z + tz) - s1z];    
+        %test(i) = [h1y; s1y];
+        if (h1y + ty) > s1y      
+           % Calculation of distance
+            distance(i) = abs(norm([s1x, s1y, s1z] - [h1x+tx, h1y+ty, h1z+tz]));
 
-        % Radar to Radar looking point % start_point - actual_point
-        heading_r2r = [s1x - s2x, s1y - s2y, s1z - s2z];
+            % Point_start to Point_actual_position % start_point - actual_point
+            heading_p2p = [h1x - (h1x + tx), h1y - (h1y + ty), h1z - (h1z + tz)];
 
-        %angle1 = [abs(heading_r2p(1)), abs(heading_r2p(2)), abs(heading_r2p(3))]; 
-        vector_p2r = [heading_p2r(1), heading_p2r(2), heading_p2r(3)];     
-        vector_p2p = [heading_p2p(1), heading_p2p(2), heading_p2p(3)]; 
-        % Area angle
-        angle_area = atan2(norm(cross(vector_p2r,vector_p2p)),dot(vector_p2r,vector_p2p));
-      
-        % Vertical calculation of angle between radar vector and radar2object vector
-        % x axis is neglected for 3D to 2D transformation 
-        vector_r2p_temp = [0, (heading_r2p(2)), (heading_r2p(3))];     
-        vector_r2r_temp = [0, (heading_r2r(2)), (heading_r2r(3))]; 
-        angle_vert(i) = rad2deg(atan2(norm(cross(vector_r2p_temp,vector_r2r_temp)),dot(vector_r2p_temp,vector_r2r_temp)));  
-        
-        % Horizontal calculation of angle between radar vector and radar2object vector
-        % z axis is neglected for 3D to 2D transformation
-        vector_r2p_temp = [(heading_r2p(1)), (heading_r2p(2)), 0];
-        vector_r2r_temp = [(heading_r2r(1)), (heading_r2r(2)), 0]; 
-        angle_hori(i) = rad2deg(atan2(norm(cross(vector_r2r_temp,vector_r2p_temp)),dot(vector_r2r_temp,vector_r2p_temp)));    
+            % Radar to Point_actual_position % start_point - actual_point
+            heading_r2p = [s1x - (h1x + tx), s1y - (h1y + ty), s1z - (h1z + tz)];
+            heading_p2r = [(h1x + tx) - s1x, (h1y + ty) - s1y, (h1z + tz) - s1z];    
 
-        % Angle correction
-        % In .csv input file we have angles from 0-180 degress, we have to make a correction
-        ang_temp1(i) = 9e+4 + (angle_hori(i) * 1e+4);
+            % Radar to Radar looking point % start_point - actual_point
+            heading_r2r = [s1x - s2x, s1y - s2y, s1z - s2z];
 
-        % Get loss from antenna system diagram
-        antenna_loss_hori(i) = antenna_hori_data(int16(ang_temp1(i)));
-        ang_temp2(i) = 9e+4 + (angle_vert(i) * 1e+4);        
-        antenna_loss_vert(i) = antenna_vert_data(int16(ang_temp2(i)));
+            %angle1 = [abs(heading_r2p(1)), abs(heading_r2p(2)), abs(heading_r2p(3))]; 
+            vector_p2r = [heading_p2r(1), heading_p2r(2), heading_p2r(3)];     
+            vector_p2p = [heading_p2p(1), heading_p2p(2), heading_p2p(3)]; 
+            % Area angle
+            angle_area(i) = atan2(norm(cross(vector_p2r,vector_p2p)),dot(vector_p2r,vector_p2p));
 
-        antenna_loss = antenna_loss_vert(i) * antenna_loss_hori(i);
+            % Vertical calculation of angle between radar vector and radar2object vector
+            % x axis is neglected for 3D to 2D transformation 
+            vector_r2p_temp = [0, (heading_r2p(2)), (heading_r2p(3))];     
+            vector_r2r_temp = [0, (heading_r2r(2)), (heading_r2r(3))]; 
+            angle_vert(i) = rad2deg(atan2(norm(cross(vector_r2p_temp,vector_r2r_temp)),dot(vector_r2p_temp,vector_r2r_temp)));  
 
-        % #Extern function for calculating receiving frequency
-        % @input is speed of object and transmiting frequency
-        F_receiv(point,i) = return_signal_freq(SPEED_OF_OBJECT,F_TRANS, angle_area, c);
+            % Horizontal calculation of angle between radar vector and radar2object vector
+            % z axis is neglected for 3D to 2D transformation
+            vector_r2p_temp = [(heading_r2p(1)), (heading_r2p(2)), 0];
+            vector_r2r_temp = [(heading_r2r(1)), (heading_r2r(2)), 0]; 
+            angle_hori(i) = rad2deg(atan2(norm(cross(vector_r2r_temp,vector_r2p_temp)),dot(vector_r2r_temp,vector_r2p_temp)));    
 
-        % #Extern function for calculating receiving power
-        % @input is speed of object and transmiting frequency
-        P_receiv(point,i) = radar_equation(F_TRANS, 1, RCS, antenna_loss, distance(i));
+            % Angle correction
+            % In .csv input file we have angles from 0-180 degress, we have to make a correction
+            ang_temp1(i) = 9e+4 + (angle_hori(i) * 1e+3);
+            search_angle1(i) = round(ang_temp1(i));
+
+            % Get loss from antenna system diagram
+            search_angle1(i) = 90000;
+            antenna_loss_hori(i) = antenna_hori_data((search_angle1(i)));
+
+            %disp(angle_vert);
+            ang_temp2(i) = 9e+4 + (angle_vert(i) * 1e+3);   
+            search_angle2(i) = round(ang_temp2(i));
+            antenna_loss_vert(i) = antenna_vert_data((search_angle2(i)));
+
+            % objekt y <= radar y
+            % sme mimo pohlad radu = -70 loss
+            antenna_loss(i) = (antenna_loss_vert(i) * antenna_loss_hori(i))*1e4;
+
+            % #Extern function for calculating receiving frequency
+            % @input is speed of object and transmiting frequency
+            F_receiv(point,i) = return_signal_freq(SPEED_OF_OBJECT,F_TRANS, angle_area(i), c);
+
+            % #Extern function for calculating receiving power
+            % @input is speed of object and transmiting frequency
+            P_receiv(point,i) = radar_equation(F_TRANS, 1, RCS, antenna_loss(i), distance(i));
+        else
+            disp('*** OUT ***');
+            F_receiv(point,i) = 1;
+            P_receiv(point,i) = 1;
+        end
     end
 
     if mod(i, NUM_OF_STEPS/100) == 0
@@ -244,11 +265,52 @@ end
 %%
 % Link frequency characteristic of all points together
 for n=1:NUM_OF_STEPS
-    for m=1:NUM_OF_POINTS
-       x(1, n) = x(m, n); 
-    end
+    %for m=2:NUM_OF_POINTS
+    %   x(1, n) = x(1, n)+ x(m, n); 
+    %end
+    x(1, n) = x(1, n) + x(2, n) + x(3, n);
     %x(1, n) = x(1, n) + x(2, n) + x(3, n) + x(4, n) + x(5, n) + x(6, n) + x(7, n) + x(8, n) + x(9, n) + x(10, n) + x(11, n) + x(12, n);
 end
 
 %%
-make_plot(x(1,:),NUM_OF_STEPS);
+%make_plot(x(1,:),NUM_OF_STEPS);
+
+
+
+%clear;
+
+%sig = csvread('output.csv');
+sig = x(1, :);
+
+Fs=10e3;
+t = (1:length(sig))/Fs;
+
+SEG_LEN=128;
+OVERLAP=0; %SEG_LEN/2;
+FFT_LEN=8*SEG_LEN;
+
+seg_idx=1:(SEG_LEN-OVERLAP):length(sig);
+
+Xdb = [];
+
+% loop over segments and process
+for i=1:(length(seg_idx)-1)
+    seg = sig(seg_idx(i):(seg_idx(i)+SEG_LEN-1));
+    seg = seg - mean(seg);
+    X = fftshift(fft(seg.*hamming(SEG_LEN)', FFT_LEN));
+    Xdb(i,:) = 20*log10(abs(X))';   
+end
+
+subplot(2,1,1)
+plot(t, real(sig), 'b-', t, imag(sig), 'r-')
+%xlim([t(1) t(end)])
+
+t_range = 1:(length(seg_idx)-1);
+f_range = (((-FFT_LEN/2):(FFT_LEN/2-1))/FFT_LEN)*Fs;
+
+subplot(2,1,2)
+imagesc(f_range, t_range, Xdb)
+view([270 90])
+colormap('jet')
+
+
