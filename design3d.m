@@ -168,69 +168,63 @@ for i=1:length(t);
         h1x = h1_x(point); 
         h1y = h1_y(point); 
         h1z = h1_z(point);  
-        
-        %test(i) = [h1y; s1y];
-        if (h1y + ty) > s1y      
-           % Calculation of distance
-            distance(i) = abs(norm([s1x, s1y, s1z] - [h1x+tx, h1y+ty, h1z+tz]));
+         
+       % Calculation of distance
+        distance(i) = abs(norm([s1x, s1y, s1z] - [h1x+tx, h1y+ty, h1z+tz]));
 
-            % Point_start to Point_actual_position % start_point - actual_point
-            heading_p2p = [h1x - (h1x + tx), h1y - (h1y + ty), h1z - (h1z + tz)];
+        % Point_start to Point_actual_position % start_point - actual_point
+        heading_p2p = [h1x - (h1x + tx), h1y - (h1y + ty), h1z - (h1z + tz)];
 
-            % Radar to Point_actual_position % start_point - actual_point
-            heading_r2p = [s1x - (h1x + tx), s1y - (h1y + ty), s1z - (h1z + tz)];
-            heading_p2r = [(h1x + tx) - s1x, (h1y + ty) - s1y, (h1z + tz) - s1z];    
+        % Radar to Point_actual_position % start_point - actual_point
+        heading_r2p = [s1x - (h1x + tx), s1y - (h1y + ty), s1z - (h1z + tz)];
+        heading_p2r = [(h1x + tx) - s1x, (h1y + ty) - s1y, (h1z + tz) - s1z];    
 
-            % Radar to Radar looking point % start_point - actual_point
-            heading_r2r = [s1x - s2x, s1y - s2y, s1z - s2z];
+        % Radar to Radar looking point % start_point - actual_point
+        heading_r2r = [s1x - s2x, s1y - s2y, s1z - s2z];
 
-            %angle1 = [abs(heading_r2p(1)), abs(heading_r2p(2)), abs(heading_r2p(3))]; 
-            vector_p2r = [heading_p2r(1), heading_p2r(2), heading_p2r(3)];     
-            vector_p2p = [heading_p2p(1), heading_p2p(2), heading_p2p(3)]; 
-            % Area angle
-            angle_area(i) = atan2(norm(cross(vector_p2r,vector_p2p)),dot(vector_p2r,vector_p2p));
+        %angle1 = [abs(heading_r2p(1)), abs(heading_r2p(2)), abs(heading_r2p(3))]; 
+        vector_p2r = [heading_p2r(1), heading_p2r(2), heading_p2r(3)];     
+        vector_p2p = [heading_p2p(1), heading_p2p(2), heading_p2p(3)]; 
+        % Area angle
+        angle_area(i) = atan2(norm(cross(vector_p2r,vector_p2p)),dot(vector_p2r,vector_p2p));
 
-            % Vertical calculation of angle between radar vector and radar2object vector
-            % x axis is neglected for 3D to 2D transformation 
-            vector_r2p_temp = [0, (heading_r2p(2)), (heading_r2p(3))];     
-            vector_r2r_temp = [0, (heading_r2r(2)), (heading_r2r(3))]; 
-            angle_vert(i) = rad2deg(atan2(norm(cross(vector_r2p_temp,vector_r2r_temp)),dot(vector_r2p_temp,vector_r2r_temp)));  
+        % Vertical calculation of angle between radar vector and radar2object vector
+        % x axis is neglected for 3D to 2D transformation 
+        vector_r2p_temp = [0, (heading_r2p(2)), (heading_r2p(3))];     
+        vector_r2r_temp = [0, (heading_r2r(2)), (heading_r2r(3))]; 
+        angle_vert(i) = rad2deg(atan2(norm(cross(vector_r2p_temp,vector_r2r_temp)),dot(vector_r2p_temp,vector_r2r_temp)));  
 
-            % Horizontal calculation of angle between radar vector and radar2object vector
-            % z axis is neglected for 3D to 2D transformation
-            vector_r2p_temp = [(heading_r2p(1)), (heading_r2p(2)), 0];
-            vector_r2r_temp = [(heading_r2r(1)), (heading_r2r(2)), 0]; 
-            angle_hori(i) = rad2deg(atan2(norm(cross(vector_r2r_temp,vector_r2p_temp)),dot(vector_r2r_temp,vector_r2p_temp)));    
+        % Horizontal calculation of angle between radar vector and radar2object vector
+        % z axis is neglected for 3D to 2D transformation
+        vector_r2p_temp = [(heading_r2p(1)), (heading_r2p(2)), 0];
+        vector_r2r_temp = [(heading_r2r(1)), (heading_r2r(2)), 0]; 
+        angle_hori(i) = rad2deg(atan2(norm(cross(vector_r2r_temp,vector_r2p_temp)),dot(vector_r2r_temp,vector_r2p_temp)));    
 
-            % Angle correction
-            % In .csv input file we have angles from 0-180 degress, we have to make a correction
-            ang_temp1(i) = 9e+4 + (angle_hori(i) * 1e+3);
-            search_angle1(i) = round(ang_temp1(i));
+        % Angle correction
+        % In .csv input file we have angles from 0-180 degress, we have to make a correction
+        ang_temp1(i) = 9e+4 + (angle_hori(i) * 1e+3);
+        search_angle1(i) = round(ang_temp1(i));
 
-            % Get loss from antenna system diagram
-            search_angle1(i) = 90000;
-            antenna_loss_hori(i) = antenna_hori_data((search_angle1(i)));
+        % Get loss from antenna system diagram
+        search_angle1(i) = 90000;
+        antenna_loss_hori(i) = antenna_hori_data((search_angle1(i)));
 
-            %disp(angle_vert);
-            ang_temp2(i) = 9e+4 + (angle_vert(i) * 1e+3);   
-            search_angle2(i) = round(ang_temp2(i));
-            antenna_loss_vert(i) = antenna_vert_data((search_angle2(i)));
+        %disp(angle_vert);
+        ang_temp2(i) = 9e+4 + (angle_vert(i) * 1e+3);   
+        search_angle2(i) = round(ang_temp2(i));
+        antenna_loss_vert(i) = antenna_vert_data((search_angle2(i)));
 
-            % objekt y <= radar y
-            % sme mimo pohlad radu = -70 loss
-            antenna_loss(i) = (antenna_loss_vert(i) * antenna_loss_hori(i))*1e4;
+        % objekt y <= radar y
+        % sme mimo pohlad radu = -70 loss
+        antenna_loss(i) = (antenna_loss_vert(i) * antenna_loss_hori(i))*1e4;
 
-            % #Extern function for calculating receiving frequency
-            % @input is speed of object and transmiting frequency
-            F_receiv(point,i) = return_signal_freq(SPEED_OF_OBJECT,F_TRANS, angle_area(i), c);
+        % #Extern function for calculating receiving frequency
+        % @input is speed of object and transmiting frequency
+        F_receiv(point,i) = return_signal_freq(SPEED_OF_OBJECT,F_TRANS, angle_area(i), c);
 
-            % #Extern function for calculating receiving power
-            % @input is speed of object and transmiting frequency
-            P_receiv(point,i) = radar_equation(F_TRANS, 1, RCS, antenna_loss(i), distance(i));
-        else
-            disp('*** OUT ***');
-            F_receiv(point,i) = 1;
-            P_receiv(point,i) = 1;
+        % #Extern function for calculating receiving power
+        % @input is speed of object and transmiting frequency
+        P_receiv(point,i) = radar_equation(F_TRANS, 1, RCS, antenna_loss(i), distance(i));
         end
     end
 
