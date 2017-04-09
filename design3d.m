@@ -225,7 +225,6 @@ for i=1:length(t);
         % #Extern function for calculating receiving power
         % @input is speed of object and transmiting frequency
         P_receiv(point,i) = radar_equation(F_TRANS, 1, RCS, antenna_loss(i), distance(i));
-        end
     end
 
     if mod(i, NUM_OF_STEPS/100) == 0
