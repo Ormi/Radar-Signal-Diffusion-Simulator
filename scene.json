@@ -1,0 +1,37 @@
+{
+	"global": {
+		"Transceiving_frequency": "24.125e9",
+		"Antenna_gain": "13",
+		"Number_of_steps": "1e4",
+		"Show_simulation_movement": "off",
+		"Test_simulation_setup": "off",
+		"Right_angle_rotation_z_axis": "on"
+	},
+	"enviroment": {
+		"x": "30",
+		"y": "70",
+		"z": "30"
+	},
+	"radar": {
+		"position": {
+			"x": "15",
+			"y": "15",
+			"z": "15"
+		 },
+		 "heading": {
+		 	"x": "15",
+		 	"y": "35",
+		 	"z": "0"
+		 }
+
+	},
+	"model": {
+		"position": {
+			"x": "14",
+			"y": "56",
+			"z": "0"
+		},
+		"RCS": "2",
+		"Speed_of_object": "30"
+	}
+}

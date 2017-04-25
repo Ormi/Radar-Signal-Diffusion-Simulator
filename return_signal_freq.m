@@ -11,7 +11,6 @@
 % Fr = 2 * v * ---- * cos(Alfa)
 %               c
 %
-function res = return_signal_freq(v_object, F_trans, angle)
-	c = physconst('Lightspeed');
+function res = return_signal_freq(v_object, F_trans, angle, c)
 	res = 2 * v_object * ((F_trans) / c) * cos(angle);
 end
