@@ -1,53 +1,43 @@
-%%
-% @author xormos00
-% @date March 2017
-% @title Radar Signal Diffusion Simulator
-% @Bachelor Thesis
-% VUT FIT
-%
-% @dependecies
-% return_signal_freq.m
-% radar_equation.m
-% parse_csv_file.m
-% make_plot.m
-% KMC4_antena_char_hori.csv
-% KMC4_antena_char_vert.csv
-% /jsonlab
-% scene.json
-% model_XXX.json
-
-% @using HGtransform
-% @literature Matlab
-%
-% Version 1.0
-
-% @TODO 
-% 
-
-% @DONE
-% rozdelenie suborov, vytvorenie viacerych modelov.
-
-% @QUESTIONS
-% Nemam vela kapitol ?
-% Dokoncit 2 kanaly.
-% .json suboru musia byt 2, nejdu len tak lahko do seba includovat.
-% finalna dokumentacia, chcete ju este citat, alebo ju mozme volne odovzdat?
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TITLE Radar Signal Diffusion Simulator %
+% BACHELOR THESIS                        %
+% COPYRIGHT 2017 VUT FIT                 %
+%--------------------------------------- %
+% NAME design3d.m                        %
+% AUTOR xormos00                         %
+% DATE March 2017                        %
+%--------------------------------------- %
+% DEPENDECIES                            %
+% return_signal_freq.m                   %
+% radar_equation.m                       %
+% parse_csv_file.m                       %
+% make_plot.m                            %
+% KMC4_antena_char_hori.csv              %
+% KMC4_antena_char_vert.csv              %
+% /jsonlab                               %
+% scene.json                             %
+% model_XXX.json                         %
+%--------------------------------------- %
+% USING LIBRARIES                        %
+% HGtransform                            %
+% JSONLab                                %
+%--------------------------------------- %
+% Version 1.0 | May 2017                 %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 clear all;
-addpath(genpath('./jsonlab'))
+   addpath(genpath('./jsonlab'))
 savepath
 
 %%
 % Setting static variables for simulation
 data_scene=loadjson('scene.json');
-data_model=loadjson('model_truck.json');
+data_model=loadjson('model_car.json');
 
 % Transmiting frequency GHz
 F_TRANS = str2num(data_scene.global.Transceiving_frequency);
 % Speed of object
 SPEED_OF_OBJECT = str2num(data_scene.model.Speed_of_object);
-% dB 
-ANTENNA_GAIN = str2num(data_scene.global.Antenna_gain);
 
 OBJECT_POS = [str2num(data_scene.model.position.x) str2num(data_scene.model.position.y) str2num(data_scene.model.position.z)];
 
@@ -151,9 +141,9 @@ for i=1:length(t);
     trans = makehgtform('translate',[tx ty tz]);
     set(ht,'Matrix',trans);
 
-    % Show transofrmation in every step on/off
-    if (SHOW_CUBE_SIMULATION) or (SHOW_SETUP)
-        pause(0.1);
+        % Show transofrmation in every step on/off
+        if (SHOW_CUBE_SIMULATION) || (SHOW_SETUP)
+            pause(0.1);
     end
     
     % Get values from static points
@@ -263,22 +253,24 @@ else
             phi_t1 = phi_t2;			
     	end
 
-        disp('Calculations completition status: [in %]');
+        disp('Calculations of first antenna completition status: [in %]');
         disp((100/12)*point);    
     end
 
     for point=1:NUM_OF_POINTS
-        phi_t1 = 0;    
+        phi_t1 = 0;          
         for n=1:length(t)
-            phi_dt = 2*pi*F_receiv(point,n)*dt+phi_t1;
+            temp = deg2rad(angle_hori(n)); 
+            phi_alpha(n) = temp * 6.7;             
+            phi_dt = (2*pi*F_receiv(point,n)*dt)+phi_alpha(n);
             var = sqrt(P_receiv(point,n));
             phi_t2 = phi_t1+phi_dt;
             xx(point,n) = var*exp(1j*(phi_t2)); % complex signal
             phi_t1 = phi_t2;            
         end
 
-        disp('Calculations completition status: [in %]');
-        disp((100/12)*point);    
+        disp('Calculations of second antenna completition status: [in %]');
+        disp((100/NUM_OF_POINTS)*point);    
     end
 
 
@@ -288,10 +280,72 @@ else
         for m=2:NUM_OF_POINTS
            x(1, n) = x(1, n) + x(m, n); 
            xx(1, n) = xx(1, n) + xx(m, n);
+           %x(1, n) = x1(1, n) + x2(1, n);
         end
-        %x(1, n) = x(1, n) + x(2, n) + x(3, n);
-        %x(1, n) = x(1, n) + x(2, n) + x(3, n) + x(4, n) + x(5, n) + x(6, n) + x(7, n) + x(8, n) + x(9, n) + x(10, n) + x(11, n) + x(12, n);
     end
+
+
+    for n=1:NUM_OF_STEPS
+           resx(1, n) = x(1, n);
+           resx(2, n) = xx(1, n); 
+           %x(1, n) = x(1, n) + x(m, n); 
+           %xx(1, n) = xx(1, n) + xx(m, n);
+           %x(1, n) = x1(1, n) + x2(1, n);
+    end
+
+    sig1 = x(1, :);%csvread('output.csv');
+    sig2 = xx(1, :);%csvread('output.csv');
+
+    Fs=10e3;
+    t = (1:length(sig1))/Fs;
+
+    SEG_LEN=128;
+    OVERLAP=0; %SEG_LEN/2;
+    FFT_LEN=8*SEG_LEN;
+
+    seg_idx=1:(SEG_LEN-OVERLAP):length(sig1);
+
+    Xdb = [];
+
+    % loop over segments and process
+    for i=1:(length(seg_idx)-1)
+        seg1 = sig1(seg_idx(i):(seg_idx(i)+SEG_LEN-1));
+        seg2 = sig2(seg_idx(i):(seg_idx(i)+SEG_LEN-1));
+        
+        seg1 = seg1 - mean(seg1);
+        seg2 = seg2 - mean(seg2);
+        
+        xS = seg1 + seg2; % I/Q1 + I/Q2
+        XS = fftshift(fft(xS.*hamming(SEG_LEN)', FFT_LEN))/SEG_LEN;
+        xD = seg1 - seg2;
+        XD = fftshift(fft(xD.*hamming(SEG_LEN)', FFT_LEN))/SEG_LEN;
+        
+        X = (XS(1,:)+XD(1,:))/2;
+        Xdb(i,:) = 20*log10(abs(X))';
+        Xphi(i,:) = real(2*atan(XD./(1j*XS)))';
+        
+    end
+
+    subplot(3,1,1)
+    plot(t, real(sig1), 'b-', t, imag(sig1), 'r-')
+    xlim([t(1) t(end)])
+
+    t_range = 1:(length(seg_idx)-1);
+    f_range = (((-FFT_LEN/2):(FFT_LEN/2-1))/FFT_LEN)*Fs;
+
+    subplot(3,1,2)
+    imagesc(f_range, t_range, Xdb)
+    view([270 90])
+    colormap('jet')
+
+    subplot(3,1,3)
+    imagesc(f_range, t_range, Xphi)
+    view([270 90])
+    colormap('jet')
+
+    csvwrite('output.csv', resx(:,:));
+
+end
 
     %%
     %make_plot(x(1,:),xx(1,:),NUM_OF_STEPS);
@@ -302,38 +356,61 @@ else
     % y = xx(1,:);
     % plot(t, real(x), 'r-',t, real(y), 'b-');
 
-    sig = x(1, :);
+%     sig = x(1, :);
 
-    Fs=NUM_OF_STEPS;
-    t = (1:length(sig))/Fs;
+%     Fs=NUM_OF_STEPS;
+%     t = (1:length(sig))/Fs;
 
-    SEG_LEN=128;
-    OVERLAP=0; %SEG_LEN/2;
-    FFT_LEN=8*SEG_LEN;
+%     SEG_LEN=128;
+%     OVERLAP=0; %SEG_LEN/2;
+%     FFT_LEN=8*SEG_LEN;
 
-    seg_idx=1:(SEG_LEN-OVERLAP):length(sig);
+%     seg_idx=1:(SEG_LEN-OVERLAP):length(sig);
 
-    Xdb = [];
+%     Xdb = [];
 
-    % loop over segments and process
-    for i=1:(length(seg_idx)-1)
-        seg = sig(seg_idx(i):(seg_idx(i)+SEG_LEN-1));
-        seg = seg - mean(seg);
-        X = fftshift(fft(seg.*hamming(SEG_LEN)', FFT_LEN));
-        Xdb(i,:) = 20*log10(abs(X))';   
-    end
+%     % loop over segments and process
+%     for i=1:(length(seg_idx)-1)
+%         seg = sig(seg_idx(i):(seg_idx(i)+SEG_LEN-1));
+%         seg = seg - mean(seg);
+%         X = fftshift(fft(seg.*hamming(SEG_LEN)', FFT_LEN));
+%         Xdb(i,:) = 20*log10(abs(X))';   
+%     end
 
-    subplot(2,1,1)
-    plot(t, real(sig), 'b-', t, imag(sig), 'r-')
-    xlim([t(1) t(end)])
+%     subplot(2,1,1)
+%     plot(t, real(sig), 'b-', t, imag(sig), 'r-')
+%     %xlim([t(1) t(end)])
 
-    t_range = 1:(length(seg_idx)-1);
-    f_range = (((-FFT_LEN/2):(FFT_LEN/2-1))/FFT_LEN)*Fs;
+%     %t_range = 1:(length(seg_idx)-1);
+%     %f_range = (((-FFT_LEN/2):(FFT_LEN/2-1))/FFT_LEN)*Fs;
 
-    subplot(2,1,2)
-    imagesc(f_range, t_range, Xdb)
-    view([270 90])
-    colormap('jet') 
+%     sig = xx(1, :);
 
-end
+%     Fs=NUM_OF_STEPS;
+%     t = (1:length(sig))/Fs;
+
+%     SEG_LEN=128;
+%     OVERLAP=0; %SEG_LEN/2;
+%     FFT_LEN=8*SEG_LEN;
+
+%     seg_idx=1:(SEG_LEN-OVERLAP):length(sig);    
+    
+%     Xdb = [];
+
+%     % loop over segments and process
+%     for i=1:(length(seg_idx)-1)
+%         seg = sig(seg_idx(i):(seg_idx(i)+SEG_LEN-1));
+%         seg = seg - mean(seg);
+%         X = fftshift(fft(seg.*hamming(SEG_LEN)', FFT_LEN));
+%         Xdb(i,:) = 20*log10(abs(X))';   
+%     end    
+    
+%     subplot(2,1,2)
+%     plot(t, real(sig), 'b-', t, imag(sig), 'r-')    
+%     %imagesc(f_range, t_range, Xdb)
+%     %view([270 90])
+%     %colormap('jet') 
+    
+%     csvwrite('output.csv', x(1,:));
+% end
 
