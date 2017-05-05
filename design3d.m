@@ -262,10 +262,14 @@ else
         for n=1:length(t)
             temp = deg2rad(angle_hori(point,n)); 
             phi_alpha(n) = temp * 6.7;             
-            phi_dt = (2*pi*F_receiv(point,n)*dt)+phi_alpha(n);
+            % phi_dt = (2*pi*F_receiv(point,n)*dt)+phi_alpha(n);
+            % var = sqrt(P_receiv(point,n));
+            % phi_t2 = phi_t1+phi_dt;
+            % xx(point,n) = var*exp(1j*(phi_t2)); % complex signal
+            phi_dt = (2*pi*F_receiv(point,n)*dt);
             var = sqrt(P_receiv(point,n));
             phi_t2 = phi_t1+phi_dt;
-            xx(point,n) = var*exp(1j*(phi_t2)); % complex signal
+            xx(point,n) = var*exp(1j*(phi_t2+phi_alpha(n))); % complex signal            
             phi_t1 = phi_t2;            
         end
 
@@ -276,12 +280,12 @@ else
 
     %%
     %Link frequency characteristic of all points together
-    for n=1:NUM_OF_STEPS
-        for m=2:NUM_OF_POINTS
-           x(1, n) = x(1, n) + x(m, n); 
-           xx(1, n) = xx(1, n) + xx(m, n);
-        end
-    end
+    % for n=1:NUM_OF_STEPS
+    %     for m=2:NUM_OF_POINTS
+    %        x(1, n) = x(1, n) + x(m, n); 
+    %        xx(1, n) = xx(1, n) + xx(m, n);
+    %     end
+    % end
 
 
     for n=1:NUM_OF_STEPS
