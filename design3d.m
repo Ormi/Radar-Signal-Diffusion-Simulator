@@ -32,7 +32,7 @@ savepath
 %%
 % Setting static variables for simulation
 data_scene=loadjson('scene.json');
-data_model=loadjson('model_car.json');
+data_model=loadjson('model_bike.json');
 
 % Transmiting frequency GHz
 F_TRANS = str2num(data_scene.global.Transceiving_frequency);
@@ -190,17 +190,17 @@ for i=1:length(t);
         % x axis is neglected for 3D to 2D transformation 
         vector_r2p_temp = [0, (heading_r2p(2)), (heading_r2p(3))];     
         vector_r2r_temp = [0, (heading_r2r(2)), (heading_r2r(3))]; 
-        angle_vert(i) = rad2deg(atan2(norm(cross(vector_r2p_temp,vector_r2r_temp)),dot(vector_r2p_temp,vector_r2r_temp)));  
+        angle_vert(point,i) = rad2deg(atan2(norm(cross(vector_r2p_temp,vector_r2r_temp)),dot(vector_r2p_temp,vector_r2r_temp)));  
 
         % Horizontal calculation of angle between radar vector and radar2object vector
         % z axis is neglected for 3D to 2D transformation
         vector_r2p_temp = [(heading_r2p(1)), (heading_r2p(2)), 0];
         vector_r2r_temp = [(heading_r2r(1)), (heading_r2r(2)), 0]; 
-        angle_hori(i) = rad2deg(atan2(norm(cross(vector_r2r_temp,vector_r2p_temp)),dot(vector_r2r_temp,vector_r2p_temp)));    
+        angle_hori(point,i) = rad2deg(atan2(norm(cross(vector_r2r_temp,vector_r2p_temp)),dot(vector_r2r_temp,vector_r2p_temp)));    
 
         % Angle correction
         % In .csv input file we have angles from 0-180 degress, we have to make a correction
-        ang_temp1(i) = 9e+4 + (angle_hori(i) * 1e+3);
+        ang_temp1(i) = 9e+4 + (angle_hori(point,i) * 1e+3);
         search_angle1(i) = round(ang_temp1(i));
 
         % Get loss from antenna system diagram
@@ -208,7 +208,7 @@ for i=1:length(t);
         antenna_loss_hori(i) = antenna_hori_data((search_angle1(i)));
 
         %disp(angle_vert);
-        ang_temp2(i) = 9e+4 + (angle_vert(i) * 1e+3);   
+        ang_temp2(i) = 9e+4 + (angle_vert(point,i) * 1e+3);   
         search_angle2(i) = round(ang_temp2(i));
         antenna_loss_vert(i) = antenna_vert_data((search_angle2(i)));
 
@@ -260,7 +260,7 @@ else
     for point=1:NUM_OF_POINTS
         phi_t1 = 0;          
         for n=1:length(t)
-            temp = deg2rad(angle_hori(n)); 
+            temp = deg2rad(angle_hori(point,n)); 
             phi_alpha(n) = temp * 6.7;             
             phi_dt = (2*pi*F_receiv(point,n)*dt)+phi_alpha(n);
             var = sqrt(P_receiv(point,n));
@@ -275,12 +275,11 @@ else
 
 
     %%
-    % Link frequency characteristic of all points together
+    %Link frequency characteristic of all points together
     for n=1:NUM_OF_STEPS
         for m=2:NUM_OF_POINTS
            x(1, n) = x(1, n) + x(m, n); 
            xx(1, n) = xx(1, n) + xx(m, n);
-           %x(1, n) = x1(1, n) + x2(1, n);
         end
     end
 
